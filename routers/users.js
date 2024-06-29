@@ -47,4 +47,20 @@ router.get("/profile/:userId", async (req, res) => {
   }
 });
 
+router.post("/updateBio", async (req, res) => {
+  const { bio, userId } = req.body;
+
+  try {
+    await prisma.profile.update({
+      where: { userId: userId },
+      data: { bio },
+    });
+
+    res.status(200).json({ bio: bio });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
