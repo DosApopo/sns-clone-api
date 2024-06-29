@@ -36,6 +36,34 @@ router.post("/post", isAuthenticated, async (req, res) => {
   }
 });
 
+//つぶやき削除API
+router.post("/delete_post", isAuthenticated, async (req, res) => {
+  const { content } = req.body;
+
+  if (!content) {
+    return res
+      .status(400)
+      .json({ message: "削除対象がみつかりませんでした。" });
+  }
+
+  if (req.userId != content.authorId) {
+    return res.status(500).json({ message: "投稿者と削除ユーザが不一致" });
+  }
+
+  try {
+    await prisma.post.delete({
+      where: {
+        id: parseInt(content.id),
+      },
+    });
+
+    res.status(201).json({ message: `削除しました。 postId  ${content.id}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "サーバーエラー" });
+  }
+});
+
 //最新つぶやきAPI
 router.get("/get_latest_post", async (req, res) => {
   try {
