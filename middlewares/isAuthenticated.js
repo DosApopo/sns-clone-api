@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 
 function isAuthenticated(req, res, next) {
-  const token = req.headers.authorization?.split(" ")[1];
+  const token = req.cookies?.jwt;
 
   if (!token) {
     return res.status(401).json({ message: "権限がありません" });

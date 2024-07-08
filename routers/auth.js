@@ -36,23 +36,48 @@ router.post("/register", async (req, res) => {
 
 //ログイン
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email } });
 
-  if (!user) {
-    return res.status(401).json({ error: "ユーザが存在しません。" });
+    if (!user) {
+      return res.status(401).json({ error: "ユーザが存在しません。" });
+    }
+
+    const isPasswordVaild = await bcrypt.compare(password, user.password);
+    if (!isPasswordVaild) {
+      return res.status(401).json({ error: "パスワードが間違っています。" });
+    }
+
+    const token = jwt.sign({ id: user.id }, process.env.SECRET_KEY, {
+      expiresIn: "1d",
+    });
+    res.cookie("jwt", token, {
+      httpOnly: true,
+      secure: process.env.BUILD_MODE === "production",
+      sameSite: process.env.BUILD_MODE === "production" ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({ message: "ログインに成功しました。" });
+  } catch (err) {
+    res.status(500).json({ error: "サーバーエラーが発生しました。" });
   }
+});
 
-  const isPasswordVaild = await bcrypt.compare(password, user.password);
-  if (!isPasswordVaild) {
-    return res.status(401).json({ error: "パスワードが間違っています。" });
+//ログアウト
+router.post("/logout", async (res) => {
+  try {
+    res.clearCookie("jwt", {
+      httpOnly: true,
+      secure: process.env.BUILD_MODE === "production",
+      sameSite: process.env.BUILD_MODE === "production" ? "none" : "lax",
+    });
+    res.status(200).json({ message: "ログアウトに成功しました。" });
+  } catch (err) {
+    res.status(500).json({ error: "サーバーエラーが発生しました。" });
   }
-
-  const token = jwt.sign({ id: user.id }, process.env.SECRET_KEY, {
-    expiresIn: "1d",
-  });
-  return res.json({ token });
 });
 
 module.exports = router;
